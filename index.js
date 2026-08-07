@@ -10,7 +10,7 @@ const aiClient = new OpenAI({
 checkEnvironment();
 
 // Create a string containing the prompt for the model
-const userPrompt = "Suggest some gifts for someone who loves hiphop music"
+const userPrompt = "Suggest some gifts for someone who loves hiphop music, make these suggestions thoughtful and practical, Your response must be under 100 words. Skip intros and conclusions. Only output gift suggestions."
 
 // Wrap the prompt in a message object with a user role
 const userMessage = {
