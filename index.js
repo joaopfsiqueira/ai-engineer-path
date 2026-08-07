@@ -1,46 +1,82 @@
-import { checkEnvironment } from "./utils.js"
-import OpenAI from "openai"
+import OpenAI from "openai";
+import { autoResizeTextarea, checkEnvironment, setLoading } from "./utils.js";
+checkEnvironment();
 
-// Initialize the OpenAI client using environment variables
+// Initialize an OpenAI client for your provider using env vars
 const openai = new OpenAI({
   apiKey: process.env.AI_KEY,
   baseURL: process.env.AI_URL,
-  dangerouslyAllowBrowser: true
-})
+  dangerouslyAllowBrowser: true,
+});
 
-checkEnvironment();
+// Get UI elements
+const giftForm = document.getElementById("gift-form");
+const userInput = document.getElementById("user-input");
+const outputContent = document.getElementById("output-content");
 
-/**
- * Challenge: Separating Intent from Instructions
- *
- * Right now, our entire prompt lives in a single user message.
- * This works — but it’s fragile.
- *
- * Your job is to:
- *
- * 1. Move the behavioral instructions into a system message
- * 2. Keep the user's actual request clean and minimal
- * 3. Send both messages in the messages array
- *
- */
-const messages = [ 
+function start() {
+  // Setup UI event listeners
+  userInput.addEventListener("input", () => autoResizeTextarea(userInput));
+  giftForm.addEventListener("submit", handleGiftRequest);
+}
+
+// Initialize messages array with system prompt
+const messages = [
   {
     role: "system",
-    content: `Make these suggestions thoughtful and practical. 
+    content: `You are the Gift Genie!
+    Make your gift suggestions thoughtful and practical.
     Your response must be under 100 words. 
     Skip intros and conclusions. 
-    Only output gift suggestions.`
+    Only output gift suggestions.`,
   },
-  {
+];
+
+async function handleGiftRequest(e) {
+  // Prevent default form submission
+  e.preventDefault();
+
+  // Get user input, trim whitespace, exit if empty
+  const userPrompt = userInput.value.trim();
+  if (!userPrompt) return;
+
+  /**
+   * Challenge: Adding AI to the Gift Genie UI
+   *
+   * The UI is wired up.
+   * The loading state is ready.
+   * But no AI request happens yet.
+   *
+   * Your task:
+   *
+   * 1. Add a user message to the messages array
+   * 2. Send a chat completions request
+   * 3. Extract the assistant’s response
+   * 4. Render it inside #output-content
+   *
+   * 💡 Check the hints folder for more guidance!
+   */
+
+  // Set loading state
+  setLoading(true);
+
+  messages.push({
     role: "user",
-    content: `Suggest some gifts for someone who loves hiphop music.`
-  }
-]
+    content: userPrompt
+  })
 
-const response = await openai.chat.completions.create({
-  model: process.env.AI_MODEL,
-  messages
-})
+  const response = await openai.chat.completions.create({
+    model: process.env.AI_MODEL,
+    messages
+  })
 
-// Extract the model's generated text from the response
-console.log(response.choices[0].message.content)
+  console.log(response)
+  const giftSuggestions = response.choices[0].message.content
+
+  outputContent.textContent = giftSuggestions
+
+  // Clear loading state
+  setLoading(false);
+}
+
+start();
