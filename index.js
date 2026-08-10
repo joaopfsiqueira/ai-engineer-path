@@ -24,18 +24,17 @@ function start() {
 }
 
 /**
- * Challenge: Enforcing Structure and Follow-Ups
+ * Challenge: Context-Sensitive Gift Suggestions
  *
- * The current gift suggestions are decent, but inconsistent.
+ * So far, the Gift Genie ignores situational details.
+ * Let's fix that.
  *
  * Your job is to:
  *
- * 1. Update the system message to enforce structure
- * 2. Require clear headings for each gift
- * 3. Require a short explanation for why each gift works
- * 4. End with a "Questions for you" section with follow-up
- *    questions that would help improve the recommendations
- *
+ * 1. Update the system message to react to contextual clues
+ * 2. If a location or constraint is mentioned, adapt the ideas
+ * 3. Add a short section under each gift that guides the user
+ *    on how to get the gift in that constrained context.
  */
 
 // Initialize messages array with system prompt
@@ -49,6 +48,10 @@ const messages = [
     Each gift must: 
       - Have a clear heading
       - A short explanation of why it would work
+
+    If the user mentions a location or a time constraint,
+    add another section under each gift that gives the user 
+    a step by step guide on where and how they can get the gift.
 
     Skip intros and conclusions. 
     Only output gift suggestions.
