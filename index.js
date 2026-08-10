@@ -26,6 +26,7 @@ const messages = [
     role: "system",
     content: `You are the Gift Genie!
     Make your gift suggestions thoughtful and practical.
+    The user will describe the gift's recipient. 
     Your response must be under 100 words. 
     Skip intros and conclusions. 
     Only output gift suggestions.`,
@@ -40,40 +41,24 @@ async function handleGiftRequest(e) {
   const userPrompt = userInput.value.trim();
   if (!userPrompt) return;
 
-  /**
-   * Challenge: Adding AI to the Gift Genie UI
-   *
-   * The UI is wired up.
-   * The loading state is ready.
-   * But no AI request happens yet.
-   *
-   * Your task:
-   *
-   * 1. Add a user message to the messages array
-   * 2. Send a chat completions request
-   * 3. Extract the assistant’s response
-   * 4. Render it inside #output-content
-   *
-   * 💡 Check the hints folder for more guidance!
-   */
-
   // Set loading state
   setLoading(true);
 
-  messages.push({
-    role: "user",
-    content: userPrompt
-  })
+  // Add user message to global messages array
+  messages.push({ role: "user", content: userPrompt });
 
+  // Send a chat completions request and await its response
   const response = await openai.chat.completions.create({
     model: process.env.AI_MODEL,
-    messages
-  })
+    messages,
+  });
 
-  console.log(response)
-  const giftSuggestions = response.choices[0].message.content
+  // Extract gift suggestions from the assistant message's content
+  const giftSuggestions = response.choices[0].message.content;
+  console.log(giftSuggestions);
 
-  outputContent.textContent = giftSuggestions
+  // Display the gift suggestions
+  outputContent.textContent = giftSuggestions;
 
   // Clear loading state
   setLoading(false);
