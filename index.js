@@ -47,21 +47,45 @@ async function handleGiftRequest(e) {
   // Add user message to global messages array
   messages.push({ role: "user", content: userPrompt });
 
-  // Send a chat completions request and await its response
-  const response = await openai.chat.completions.create({
-    model: process.env.AI_MODEL,
-    messages,
-  });
+  /**
+   * Challenge: Basic Error Handling
+   *
+   * Right now, if the AI request fails,
+   * the app will silently break.
+   *
+   * Your task:
+   *
+   * 1. Wrap the AI request in a try/catch block
+   * 2. If an error occurs:
+   *    - Log the error to the console
+   *    - Show a friendly message in the UI
+   * 3. Ensure loading always stops
+   *
+   * 💡 Check the hints folder for additional guidance!
+   */
 
-  // Extract gift suggestions from the assistant message's content
-  const giftSuggestions = response.choices[0].message.content;
-  console.log(giftSuggestions);
+  try {
+    // Send a chat completions request and await its response
+    const response = await openai.chat.completions.create({
+      model: "gpt-50",
+      messages,
+    });
 
-  // Display the gift suggestions
-  outputContent.textContent = giftSuggestions;
+    // Extract gift suggestions from the assistant message's content
+    const giftSuggestions = response.choices[0].message.content;
+    console.log(giftSuggestions);
 
-  // Clear loading state
-  setLoading(false);
+    // Display the gift suggestions
+    outputContent.textContent = giftSuggestions;
+
+  } catch (error) {
+    console.error(error)
+    outputContent.textContent = 
+      "Sorry, I can't access what I need right now. Please try again."
+  } finally {
+    // Clear loading state
+    setLoading(false);
+  }
 }
 
 start();
