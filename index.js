@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { autoResizeTextarea, checkEnvironment, setLoading } from "./utils.js";
+import { marked } from "marked";
 checkEnvironment();
 
 // Initialize an OpenAI client for your provider using env vars
@@ -47,27 +48,10 @@ async function handleGiftRequest(e) {
   // Add user message to global messages array
   messages.push({ role: "user", content: userPrompt });
 
-  /**
-   * Challenge: Basic Error Handling
-   *
-   * Right now, if the AI request fails,
-   * the app will silently break.
-   *
-   * Your task:
-   *
-   * 1. Wrap the AI request in a try/catch block
-   * 2. If an error occurs:
-   *    - Log the error to the console
-   *    - Show a friendly message in the UI
-   * 3. Ensure loading always stops
-   *
-   * 💡 Check the hints folder for additional guidance!
-   */
-
   try {
     // Send a chat completions request and await its response
     const response = await openai.chat.completions.create({
-      model: "gpt-50",
+      model: process.env.AI_MODEL,
       messages,
     });
 
@@ -75,15 +59,37 @@ async function handleGiftRequest(e) {
     const giftSuggestions = response.choices[0].message.content;
     console.log(giftSuggestions);
 
-    // Display the gift suggestions
-    outputContent.textContent = giftSuggestions;
-
+    /**
+     * Challenge: Render Markdown Output
+     *
+     * The AI often returns Markdown by default.
+     * Right now, we’re treating that output as plain text.
+     *
+     * Your task:
+     *
+     * 1. Take the AI response string
+     * 2. Convert it from Markdown into HTML
+     * 3. Render it as HTML inside #output-content
+     *
+     * We’ll be using the marked library for this.
+     *
+     * - marked has a function that you must look up
+     * - It takes an MD string, returns an HTML string
+     *
+     * 💡 Check the hints folder if you need more guidance!
+     */
+    
+    // Display the gift suggestions 
+    outputContent.innerHTML = marked.parse(giftSuggestions)
   } catch (error) {
-    console.error(error)
-    outputContent.textContent = 
-      "Sorry, I can't access what I need right now. Please try again."
+    // Log the error for debugging
+    console.error(error);
+
+    // Show a friendly error message to the user
+    outputContent.textContent =
+      "Sorry, I can't access what I need right now. Please try again in a bit.";
   } finally {
-    // Clear loading state
+    // Always clear loading state, whether request succeeds or fails
     setLoading(false);
   }
 }
