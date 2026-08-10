@@ -1,6 +1,8 @@
 import OpenAI from "openai";
 import { autoResizeTextarea, checkEnvironment, setLoading } from "./utils.js";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
+
 checkEnvironment();
 
 // Initialize an OpenAI client for your provider using env vars
@@ -60,27 +62,27 @@ async function handleGiftRequest(e) {
     console.log(giftSuggestions);
 
     /**
-     * Challenge: Render Markdown Output
+     * Challenge: Sanitize AI Output Before Rendering
      *
-     * The AI often returns Markdown by default.
-     * Right now, we’re treating that output as plain text.
+     * AI output must be treated as untrusted input.
      *
      * Your task:
      *
-     * 1. Take the AI response string
-     * 2. Convert it from Markdown into HTML
-     * 3. Render it as HTML inside #output-content
+     * 1. Sanitize the rendered HTML before inserting it into the DOM
+     * 2. Ensure no scripts or unsafe HTML can run
      *
-     * We’ll be using the marked library for this.
      *
-     * - marked has a function that you must look up
-     * - It takes an MD string, returns an HTML string
+     * We’ll use DOMPurify for sanitization.
      *
-     * 💡 Check the hints folder if you need more guidance!
+     * 💡 Check the hints folder for more guidance!
      */
+
+    const html = marked.parse(giftSuggestions)
+
+    const safeHTML = DOMPurify.sanitize(html)
     
     // Display the gift suggestions 
-    outputContent.innerHTML = marked.parse(giftSuggestions)
+    outputContent.innerHTML = safeHTML
   } catch (error) {
     // Log the error for debugging
     console.error(error);
