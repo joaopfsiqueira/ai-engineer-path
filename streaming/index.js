@@ -1,7 +1,12 @@
 import OpenAI from "openai";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
-import { checkEnvironment, autoResizeTextarea, setLoading, showStream } from "./utils.js";
+import {
+  checkEnvironment,
+  autoResizeTextarea,
+  setLoading,
+  showStream,
+} from "./utils.js";
 
 checkEnvironment();
 
@@ -17,27 +22,6 @@ const giftForm = document.getElementById("gift-form");
 const userInput = document.getElementById("user-input");
 const outputContent = document.getElementById("output-content");
 
-function start() {
-  // Setup UI event listeners
-  userInput.addEventListener("input", () => autoResizeTextarea(userInput));
-  giftForm.addEventListener("submit", handleGiftRequest);
-}
-
-/**
- * Challenge: Enforcing Structure and Follow-Ups
- *
- * The current gift suggestions are decent, but inconsistent.
- *
- * Your job is to:
- *
- * 1. Update the system message to enforce structure
- * 2. Require clear headings for each gift
- * 3. Require a short explanation for why each gift works
- * 4. End with a "Questions for you" section with follow-up
- *    questions that would help improve the recommendations
- *
- */
-
 // Initialize messages array with system prompt
 const messages = [
   {
@@ -45,19 +29,17 @@ const messages = [
     content: `You are the Gift Genie!
     Make your gift suggestions thoughtful and practical.
     The user will describe the gift's recipient. 
-    Your response must be in structured Markdown.
-    Each gift must: 
-      - Have a clear heading
-      - A short explanation of why it would work
-
+    Your response must be 1000 words. 
     Skip intros and conclusions. 
-    Only output gift suggestions.
-    
-    End with a section with an H2 heading titled "Questions for you" 
-    that contains follow-ups that would help improve the 
-    gift suggestions`,
+    Only output gift suggestions.`,
   },
 ];
+
+function start() {
+  // Setup UI event listeners
+  userInput.addEventListener("input", () => autoResizeTextarea(userInput));
+  giftForm.addEventListener("submit", handleGiftRequest);
+}
 
 async function handleGiftRequest(e) {
   // Prevent default form submission
@@ -73,42 +55,61 @@ async function handleGiftRequest(e) {
   // Add user message to global messages array
   messages.push({ role: "user", content: userPrompt });
 
+  /**
+   * Challenge: Stream Gift Genie Responses
+   *
+   * You're starting with:
+   * - A working Gift Genie app from the previous lesson
+   * - A non-streaming chat completion request
+   *
+   * Your task:
+   *
+   * 1. Enable streaming by adding stream: true to the request
+   * 2. Loop over the stream using for await...of syntax
+   * 3. Extract content from each chunk
+   * 4. Accumulate streamed text chunks into a single string
+   * 5. Convert that accumulated Markdown into HTML
+   * 6. Sanitize the HTML
+   * 7. Render it progressively as the stream updates
+   *
+   * 💡 Check the hints folder for additional guidance
+   */
+
   try {
-    // Enable streaming in the chat completions request
+    // Send a chat completions request and await its response
     const stream = await openai.chat.completions.create({
       model: process.env.AI_MODEL,
       messages,
-      stream: true,
+      stream: true
     });
 
+    let giftSuggestions = ""
+    
     // Show output container immediately for streaming feedback
     showStream();
 
-    // Accumulate the streamed response
-    let giftSuggestions = "";
-
-    // Iterate over streamed chunks as they arrive
     for await (const chunk of stream) {
-      const chunkContent = chunk.choices[0]?.delta?.content;
-      if (!chunkContent) continue;
+      const chunkContent = chunk.choices[0].delta.content
+      giftSuggestions += chunkContent
 
-      // Append to accumulated response
-      giftSuggestions += chunkContent;
-
-      // Convert Markdown to HTML progressively
+      // Convert Markdown to HTML
       const html = marked.parse(giftSuggestions);
 
-      // Sanitize the HTML to prevent XSS attacks
+      // Sanitize the HTML
       const safeHTML = DOMPurify.sanitize(html);
 
-      // Render progressively
+      // Display the sanitized HTML
       outputContent.innerHTML = safeHTML;
     }
 
+    // Extract gift suggestions from the assistant message's content
+    // const giftSuggestions = response.choices[0].message.content;
     console.log(giftSuggestions);
-  } catch (error) {
+
+
+  } catch (err) {
     // Log the error for debugging
-    console.error(error);
+    console.error(err);
 
     // Display friendly error message
     outputContent.textContent =
