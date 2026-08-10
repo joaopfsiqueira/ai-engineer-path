@@ -1,6 +1,7 @@
 import OpenAI from "openai/index.js";
 import { checkEnvironment, sleep } from "./utils.js";
 import { giftSchema } from "./schema.js"
+import { giftSchemaResponses } from "./schema-responses.js"
 
 // Initialize OpenAI client with environment variables
 const openai = new OpenAI({
@@ -12,31 +13,33 @@ const openai = new OpenAI({
 checkEnvironment();
 
 // Make a gift suggestion request with the Chat Completions API
-async function getGiftSuggestion() {
-  const response = await openai.chat.completions.create({
-    model: process.env.AI_MODEL,
-    messages: [
-      {
-        role: "user",
-        content: `Suggest 3 gifts for a coffee lover.`,
-      },
-    ],
-    response_format: giftSchema
-  });
-
-  return response.choices[0].message.content;
-}
-
-// Make a gift suggestion request with the Responses API
 // async function getGiftSuggestion() {
-//   const response = await openai.responses.create({
+//   const response = await openai.chat.completions.create({
 //     model: process.env.AI_MODEL,
-//     input: `Suggest 3 gifts for a coffee lover. Return as JSON array.
-//   Each gift should have: name, price_range, and why_its_good.`,
+//     messages: [
+//       {
+//         role: "user",
+//         content: `Suggest 3 gifts for a coffee lover.`,
+//       },
+//     ],
+//     response_format: giftSchema
 //   });
 
-//   return response.output_text;
+//   return response.choices[0].message.content;
 // }
+
+// Make a gift suggestion request with the Responses API
+async function getGiftSuggestion() {
+  const response = await openai.responses.create({
+    model: process.env.AI_MODEL,
+    input: `Suggest 3 gifts for a coffee lover.`,
+    text: {
+      format: giftSchemaResponses
+    }
+  });
+
+  return response.output_text;
+}
 
 // Run 5 calls to observe output 
 async function runDemo() {
