@@ -23,20 +23,6 @@ function start() {
   giftForm.addEventListener("submit", handleGiftRequest);
 }
 
-/**
- * Challenge: Context-Sensitive Gift Suggestions
- *
- * So far, the Gift Genie ignores situational details.
- * Let's fix that.
- *
- * Your job is to:
- *
- * 1. Update the system message to react to contextual clues
- * 2. If a location or constraint is mentioned, adapt the ideas
- * 3. Add a short section under each gift that guides the user
- *    on how to get the gift in that constrained context.
- */
-
 // Initialize messages array with system prompt
 const messages = [
   {
@@ -60,6 +46,161 @@ const messages = [
     that contains follow-ups that would help improve the 
     gift suggestions`,
   },
+  {
+    role: "user",
+    content: "dubai airport. last minute gifts for niece (arts & crafts) and nephew who loves football"
+  },
+  {
+    role: "assistant",
+    content: `
+### Travel Art Kit for Niece (Compact & Portable)
+
+A small, kid-friendly arts & crafts item that's easy to pack and perfect for a quick creative distraction during travel.
+
+**How to get it:**
+1. Head to Dubai International Airport (DXB) and proceed to Terminal 3 Departures.
+2. Visit Dubai Duty Free or a nearby WHSmith that carries kids’ stationery.
+3. Ask for compact arts & crafts kits or a coloring book with pencils.
+4. Choose a lightweight option suitable for carry-on.
+5. Request gift wrapping if available.
+
+---
+
+### Mini Football Keychain for Nephew
+
+A light, inexpensive football-themed souvenir that’s easy to carry and perfect for an airport purchase.
+
+**How to get it:**
+1. Visit Dubai Duty Free or a souvenir shop near the gates.
+2. Ask for football-themed keychains or small sports souvenirs.
+3. Check toy or sports sections if needed.
+4. Purchase and pack securely.
+
+---
+
+## Questions for you
+1. What are the ages of your niece and nephew?
+2. Do you have a budget per gift?
+3. Are you departing from Terminal 3?
+4. Does your nephew support a specific team?
+`
+  },
+    {
+    role: "user",
+    content: "my christmas secret santa is a major hiphop music fan and we have a 30 CAD budget at the office. week left. I have Amazon prime."
+  },
+  {
+    role: "assistant",
+    content: `
+### Hip-Hop Coffee Table Book (Artists, Lyrics, or Culture)
+
+A well-designed book on hip-hop history, iconic albums, or legendary artists works as a tasteful office-friendly gift that still feels personal to a serious fan.
+
+**How to get it:**
+
+1. Open Amazon and make sure you’re on Amazon.ca.
+2. Search for titles like *“hip hop coffee table book”*, *“hip hop history book”*, or *“rap album art book”*.
+3. Filter by **Prime eligible** and price under **30 CAD**.
+4. Check delivery date to ensure arrival within a week.
+5. Order hardcover if available for a more premium feel.
+
+---
+
+### Vinyl-Style Hip-Hop Wall Art or Poster
+
+Minimalist prints featuring classic hip-hop albums, artists, or lyric typography fit well in an office or home setup without being gimmicky.
+
+**How to get it:**
+
+1. Search Amazon for *“hip hop wall art”* or *“rap album poster minimalist”*.
+2. Filter by **Prime** and size (A3 or smaller is safer for offices).
+3. Read reviews to ensure print quality.
+4. Order unframed to stay within budget, or framed if still under 30 CAD.
+5. Consider neutral designs if office taste is conservative.
+
+---
+
+### High-Quality Hip-Hop Graphic Tee (Low-Key Design)
+
+A subtle, well-designed T-shirt referencing a classic artist or era is practical and personal without being loud.
+
+**How to get it:**
+
+1. Search *“hip hop graphic t shirt”* or specific artists (e.g., Nas, Wu-Tang, Kendrick).
+2. Filter by **Prime** and check size availability.
+3. Look for neutral colors (black, grey, off-white).
+4. Check material and reviews for print durability.
+5. Order one size up if unsure.
+
+---
+
+### Hip-Hop Lyric Mug or Desk Accessory
+
+A mug or desk item featuring iconic lyrics or album references works well as a daily-use office gift.
+
+**How to get it:**
+
+1. Search *“hip hop lyric mug”* or *“rap quote mug”* on Amazon.
+2. Filter Prime-only and check delivery date.
+3. Avoid novelty fonts; choose clean typography.
+4. Ensure it’s dishwasher-safe from the product details.
+5. Order with protective packaging enabled.
+
+---
+
+### Hip-Hop Inspired Beanie or Cap (Minimal Branding)
+
+A simple cap or beanie with understated hip-hop influence fits most styles and avoids sizing complexity.
+
+**How to get it:**
+
+1. Search *“hip hop cap minimalist”* or *“streetwear beanie”*.
+2. Filter Prime and price under 30 CAD.
+3. Choose adjustable caps or one-size beanies.
+4. Check reviews for fit and fabric quality.
+5. Order neutral colors to keep it versatile.
+
+---
+
+## Questions for you
+
+1. Do you know their favorite hip-hop era (90s, 2000s, modern)?
+2. Any specific artists they constantly mention?
+3. Is this a conservative office environment or casual?
+4. Would you prefer something decorative or something they can use daily?
+`
+  }
+  /**
+ * Challenge: Few-Shot Prompting with Multiple Examples
+ *
+ * So far, we’ve been relying on zero-shot prompting.
+ * Now we’re going to show the model multiple examples
+ * of what “good” looks like.
+ *
+ * You are starting with:
+ * - A system prompt
+ * - One example user message
+ * - One example assistant response (already edited for clarity)
+ *
+ * Your task:
+ *
+ * 1. Add ANOTHER example user message
+ * 2. Add a matching example assistant response
+ *
+ * Guidelines for your new example:
+ *
+ * - It must follow the system rules exactly
+ * - It should be consistent with the formatting of the first example
+ * - Explanations should be plain text (no “Why this works” labels)
+ * - Use “How to get it” instead of long step-by-step headings
+ * - Questions at the end should be numbered
+ *
+ * You’re allowed to generate your example using another AI tool
+ * (ChatGPT, Gemini, t3chat, etc.) and paste it in here.
+ * What matters is that it demonstrates the style and structure we want.
+ * 
+ * 💡 Check the hints folder for additional guidance!
+ */
 ];
 
 async function handleGiftRequest(e) {
@@ -74,7 +215,9 @@ async function handleGiftRequest(e) {
   setLoading(true);
 
   // Add user message to global messages array
-  messages.push({ role: "user", content: userPrompt });
+  messages.push({ 
+    role: "user", 
+    content: `Generate fresh gift ideas for this new user request: ${userPrompt}` });
 
   try {
     // Enable streaming in the chat completions request
