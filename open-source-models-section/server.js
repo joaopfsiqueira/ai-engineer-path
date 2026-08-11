@@ -1,14 +1,17 @@
 // server.js
 import express from "express";
-import { huggingFaceFunction } from './huggingFaceFunction.js';
+import { textSummarization } from './huggingFaceFunction.js';
+import dotenv from 'dotenv';
 
 const app = express();
+
+dotenv.config();
 
 app.use(express.static("public")); // serve your frontend files
 
 app.get("/chat", async (req, res) => {
      try {
-    const text = await huggingFaceFunction();
+    const text = await textSummarization();
     res.json({ text });
     console.log(text);
   } catch (err) {

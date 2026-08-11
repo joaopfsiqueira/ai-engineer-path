@@ -1,17 +1,17 @@
 import { InferenceClient } from "@huggingface/inference";
+import dotenv from 'dotenv';
 
+dotenv.config();
 const client = new InferenceClient(process.env.HF_TOKEN);
 
-// Challenge
-// Check your token is correctly stored in your env vars by logging it to the runner.
+const inputText = "A cherry blossom is the flower from a Prunus tree, of which there are many different kinds. Species cherry blossoms are found throughout the world being especially common in regions in the Northern Hemisphere with temperate climates, including Japan, China, and Korea, as well as Nepal, India, Pakistan, Iran, and Afghanistan, and several areas across northern Europe.Japan is particularly famous for its cherry blossom due its large number of varieties and the nationwide celebrations during the blooming season. As the buds burst open in parks and streets across the country, people throw picnic and hanami (flower viewing) parties to appreciate the transient beauty of the flowers and welcome in the warmer weather. Cherry blossoms in Japanese are known as sakura and it would not be an exaggeration to say they are a national obsession.";
 
-// It should have the following format : {accessToken: "hf_...", defaultOptions: {}}
+export async function textSummarization() {
+  const response = await client.textClassification({
+    model:  "distilbert/distilbert-base-uncased-finetuned-sst-2-english",
+    inputs: inputText,
+    provider: "hf-inference",
+  });
 
-export async function huggingFaceFunction() {
-const output = await client.summarization({
-	model: "facebook/bart-large-cnn",
-	inputs: "The tower is 324 metres (1,063 ft) tall, about the same height as an 81-storey building, and the tallest structure in Paris. Its base is square, measuring 125 metres (410 ft) on each side. During its construction, the Eiffel Tower surpassed the Washington Monument to become the tallest man-made structure in the world, a title it held for 41 years until the Chrysler Building in New York City was finished in 1930. It was the first structure to reach a height of 300 metres. Due to the addition of a broadcasting aerial at the top of the tower in 1957, it is now taller than the Chrysler Building by 5.2 metres (17 ft). Excluding transmitters, the Eiffel Tower is the second tallest free-standing structure in France after the Millau Viaduct.",
-	provider: "hf-inference",
-});
-console.log(output);
+  return response;
 };
