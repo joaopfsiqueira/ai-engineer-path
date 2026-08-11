@@ -4,7 +4,7 @@ import { dirname, join } from 'path';
 import helmet from 'helmet'
 import { initDatabase } from './deployment-section/config/database-init.js';
 import pool from './deployment-section/config/database.js';
-import dreamsRouter from './deployment-section/routes/dreams.js';
+import dreamsRouter from './routes/dreams.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
