@@ -12,7 +12,9 @@ async function main(input) {
           content: textChunk, 
           embedding: embeddingResponse.data[0].embedding 
         }
-        console.log(data);  
+        
+        // Insert content and embedding into Supabase
+        await supabase.from('documents').insert(data); 
     })    
   );
   console.log('Embedding complete!');
