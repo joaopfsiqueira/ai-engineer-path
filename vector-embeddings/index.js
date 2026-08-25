@@ -4,8 +4,8 @@ import openai from './config.js';
 async function main() {
   const embedding = await openai.embeddings.create({
     model: "text-embedding-ada-002",
-    input: "The quick brown fox jumped over the lazy dog",
+    input: "Hello, world!",
   });
-  console.log(embedding);
+  console.log(embedding.data[0].embedding);
 }
 main();
