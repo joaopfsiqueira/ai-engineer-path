@@ -2,7 +2,8 @@ import { openai, supabase } from './config.js';
 import podcasts from './content.js';
 
 async function main(input) {
-  const data = await Promise.all(
+  try {
+    const data = await Promise.all(
     input.map( async (textChunk) => {
         const embeddingResponse = await openai.embeddings.create({
             model: "text-embedding-ada-002",
@@ -15,9 +16,21 @@ async function main(input) {
     })
   );
   
-  // Insert content and embedding into Supabase
-  await supabase.from('documents').insert(data); 
-  console.log('Embedding and storing complete!');
+    // Insert content and embedding into Supabase
+    const { data: insertedData, error } = await supabase
+    .from('documents')
+    .insert(data)
+    .select();
+
+    if (error) {
+      throw new Error(`Erro ao inserir no Supabase: ${error.message}`);
+    }
+
+    console.log('Embedding and storing complete!');
+  } catch (error) {
+    console.error('Error occurred:', error);
+  }
+
 }
 
 main(podcasts)
