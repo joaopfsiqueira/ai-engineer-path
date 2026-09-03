@@ -1,7 +1,7 @@
 import { openai, supabase } from './config.js';
 
 // User query about podcasts
-const query = "Something peaceful and relaxing";
+const query = "An episode Elon Musk would enjoy";
 main(query);
 
 // Bring all function calls together
@@ -51,3 +51,7 @@ async function getChatCompletion(text, query) {
 
   console.log(response.choices[0].message.content);
 }
+
+
+
+
