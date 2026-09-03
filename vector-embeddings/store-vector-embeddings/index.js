@@ -19,7 +19,7 @@ async function main(input) {
     // Insert content and embedding into Supabase
     const { data: insertedData, error } = await supabase
     .from('documents')
-    .insert(data)
+    .insert(insertedData)
     .select();
 
     if (error) {

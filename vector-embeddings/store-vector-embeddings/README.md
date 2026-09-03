@@ -1,19 +1,75 @@
-# Getting Started
-Install the dependencies and run the project
+# Podcast Vector Embeddings
+
+A demonstration application that converts podcast titles and descriptions
+into vector embeddings and populates a Supabase table. These embeddings can be
+used to test semantic search, finding podcasts by meaning rather than only by
+exact keyword matches.
+
+## What the application does
+
+When the application runs, it:
+
+1. Reads the podcast snippets defined in `content.js`.
+2. Generates an embedding for each snippet using OpenAI's
+   `text-embedding-ada-002` model.
+3. Inserts the text and returned vector into the Supabase `documents` table.
+
+The generated vector has 1,536 dimensions, matching the `embedding` column
+defined in `documents.sql`.
+
+## Prerequisites
+
+- Node.js and npm installed;
+- a Supabase project;
+- an OpenAI API key;
+- the project's Supabase `anon`/`public` key.
+
+## Supabase setup
+
+Run the contents of `documents.sql` in the Supabase SQL Editor:
+
+```sql
+create table documents (
+  id bigserial primary key,
+  content text,
+  embedding vector(1536)
+);
 ```
+
+Make sure the `vector` extension is enabled in the project. If Row Level
+Security (RLS) is enabled for the table, also create a policy that allows
+`INSERT` for the key used by the application.
+
+## Environment variables
+
+Create a `.env` file in this directory:
+
+```env
+OPENAI_API_KEY=your-openai-api-key
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_API_KEY=your-supabase-anon-or-public-key
+```
+
+Do not use a Supabase Personal Access Token (`sbp_...`) as
+`SUPABASE_API_KEY`. Since this project uses the key on the client, do not use
+the `service_role` key.
+
+## Running the application
+
+```bash
 npm install
 npm start
 ```
 
-Head over to https://vitejs.dev/ to learn more about configuring vite
-## About Scrimba
+When the application starts, `index.js` automatically generates and stores the
+embeddings. The records can be viewed in the Supabase `documents` table.
 
-At Scrimba our goal is to create the best possible coding school at the cost of a gym membership! 💜
-If we succeed with this, it will give anyone who wants to become a software developer a realistic shot at succeeding, regardless of where they live and the size of their wallets 🎉
-The Fullstack Developer Path aims to teach you everything you need to become a Junior Developer, or you could go further with one of our advanced courses 🚀
+## Semantic search
 
-- [Our courses](https://scrimba.com/courses)
-- [The Frontend Career Path](https://scrimba.com/fullstack-path-c0fullstack)
-- [Become a Scrimba Pro member](https://scrimba.com/pricing)
+This application prepares the data for semantic search. To perform a search,
+generate an embedding for the user's query and compare it with the
+`embedding` column, typically using cosine distance or inner product in a
+Supabase SQL function/RPC.
 
-Happy Coding!
+Running the script again inserts the same podcasts again. In a real project,
+consider adding a unique identifier and using `upsert` to prevent duplicates.
