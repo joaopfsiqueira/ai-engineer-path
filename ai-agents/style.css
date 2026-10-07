@@ -1,0 +1,68 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  font-family: system-ui, sans-serif;
+  background: #313338;
+}
+
+button {
+  border: 1px solid #5865f2;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  color: #ffffff;
+  background: #5865f2;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.console-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+}
+
+.brand,
+.demo-buttons {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  padding: 4px;
+  border-radius: 8px;
+  color: #ffffff;
+  background: #5865f2;
+}
+
+.brand-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #f2f3f5;
+}
+
+.brand-name span {
+  color: #9aa7ff;
+}
+
+@media (max-width: 560px) {
+  .demo-buttons {
+    flex-direction: column;
+  }
+}
