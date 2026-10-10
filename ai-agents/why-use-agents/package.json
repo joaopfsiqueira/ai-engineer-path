@@ -1,0 +1,23 @@
+{
+  "name": "template-console-news-1-2a-starter",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Console template for the first get_open_source_news tool lessons",
+  "main": "server.js",
+  "scripts": {
+    "dev": "npm run start",
+    "start": "concurrently --raw \"npm run server\" \"npm run client\"",
+    "server": "node server.js",
+    "client": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "openai": "^6.41.0"
+  },
+  "devDependencies": {
+    "vite": "^6.4.3",
+    "concurrently": "^10.0.3"
+  }
+}
