@@ -1,0 +1,42 @@
+✓ AI_MODEL: gpt-5.4-nano
+✓ AI_URL: https://api.openai.com/v1
+Agent server running at http://localhost:3001
+If you’re replacing **Calendly**, you’ll want to look for an open-source (or at least **source-available**) scheduling/calendaring product that supports **SSO** and doesn’t lock you out of **code**.
+
+### Important note (based on recent news)
+Cal.com recently moved to a **closed-source commercial codebase** (while launching an MIT-licensed “Cal.diy” for hobbyists). That means **Cal.com may not meet your “source code access” requirement** for the enterprise/team offering with SSO/workflows—so it’s no longer a clean fit for your stated constraints.
+
+### Practical open-source directions that meet your needs
+#### 1) **Bookstack (self-hosted) + SSO via your IdP (best for control, but not Calendly-like)**
+- **Source code access:** yes (open-source).
+- **SSO:** works well because you can centralize auth via reverse proxy / SSO integration (e.g., with Keycloak/Traefik/NGINX auth).
+- **Scheduling fit:** Bookstack is not a native “booking slots” tool like Calendly. You’d likely implement booking using another component (see item #2).
+
+Repository: https://github.com/BookStackApp/BookStack
+
+#### 2) **Keycloak (SSO provider) + a separate booking app**
+If “source code access + SSO” is non-negotiable, a common architecture is:
+- Use **Keycloak** for SSO
+- Use a **booking UI/app** that supports “availability + links” (may require integration work)
+
+**Keycloak**
+- **Source code access:** yes
+- **SSO features:** full OIDC/SAML support
+- **Works with many apps** via standard protocols
+
+Repo: https://github.com/keycloak/keycloak
+
+### If you tell me a few details, I can recommend the best open-source booking option
+1) Do you need **meeting types + time-slot booking** (the core Calendly feature), or is “request a meeting” enough?
+2) Which SSO do you need: **SAML** or **OIDC** (Azure AD/Entra ID, Google Workspace, Okta)?
+3) Are you okay with a **self-hosted stack** (SSO + booking + email notifications), as opposed to one turnkey app?
+
+Reply with those and your preferred hosting (Docker/K8s), and I’ll narrow it to specific open-source candidates and a workable SSO setup.
+
+Usage: {
+  input_tokens: 13089,
+  input_tokens_details: { cache_write_tokens: 0, cached_tokens: 12032 },
+  output_tokens: 522,
+  output_tokens_details: { reasoning_tokens: 0 },
+  total_tokens: 13611
+}
