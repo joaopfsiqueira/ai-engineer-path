@@ -1,0 +1,61 @@
+Turn 1
+
+Full output array: [
+  {
+    "id": "fc_09615edc9f9b450d006a4fe9a09b00819cb97e96305f88970e",
+    "type": "function_call",
+    "status": "completed",
+    "arguments": "{}",
+    "call_id": "call_OIF2YtYorIpfOZVskOpXynyA",
+    "name": "get_open_source_news"
+  }
+]
+Turn 2
+
+Full output array: [
+  {
+    "id": "fc_00d9392f0a499720006a4fe9a19234819e926366e1f8f694be",
+    "type": "function_call",
+    "status": "completed",
+    "arguments": "{}",
+    "call_id": "call_q2BboF57s5CpwuTdoPyJNwtW",
+    "name": "get_open_source_news"
+  }
+]
+Turn 3
+
+Full output array: [
+  {
+    "id": "fc_0697cccf595971dd006a4fe9a2c29481a3a6f2c5811743016a",
+    "type": "function_call",
+    "status": "completed",
+    "arguments": "{}",
+    "call_id": "call_jdGvzBuXYbhlAd2fFswt9kPn",
+    "name": "get_open_source_news"
+  }
+]
+Turn 4
+
+Full output array: [
+  {
+    "id": "fc_00a1a9de07c22281006a4fe9a4023081a1a5301896228514d7",
+    "type": "function_call",
+    "status": "completed",
+    "arguments": "{}",
+    "call_id": "call_jrOwK9fSfTHR9LTls1YeZBS9",
+    "name": "get_open_source_news"
+  }
+]
+Turn 5
+
+Full output array: [
+  {
+    "id": "fc_0b79ade9fe9ee8b0006a4fe9a50760819187ec9056a60a9861",
+    "type": "function_call",
+    "status": "completed",
+    "arguments": "{}",
+    "call_id": "call_Mcw9NxodkjrSJrCVfJVOIOM8",
+    "name": "get_open_source_news"
+  }
+]
+Maximum Turns Exceeded
