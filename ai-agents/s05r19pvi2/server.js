@@ -1,7 +1,7 @@
 import "./environment.js";
-import { readFile } from "node:fs/promises";
 import express from "express";
 import OpenAI from "openai";
+import { searchSwaps } from "./store/index.js";
 
 // Create the Express app for our backend server.
 const app = express();
@@ -11,142 +11,87 @@ const client = new OpenAI({
   apiKey: process.env.AI_KEY,
   baseURL: process.env.AI_URL,
 });
-
 const systemPrompt = `You are OpenSwap, an AI assistant that helps users find open-source alternatives to popular software.
 
-Use the get_open_source_news tool before recommending software in case recent news would change your answer.`;
+Use the search_swaps tool to search the local database when recommending alternatives. 
+Base your recommendations on the database results rather than your memory.`;
 
-/**
- * Challenge: Add A Topic Parameter To the News Tool
- *
- * The loop works, but get_open_source_news always returns the same broad
- * list. The model has no way to ask for news about one topic.
- *
- * getOpenSourceNews(topic) filters by a topic string.
- *
- * Your task:
- *
- * 1. Write a description that asks for one search keyword. Prefer a named
- *    software product, or fall back to one topic word if none is named.
- * 2. In the function_call branch, parse the function call arguments and
- *    pass the topic into getOpenSourceNews.
- *
- * When it works, the console logs arguments like {"topic":"Calendly"} and
- * the executed tool reports a smaller filtered item count. If the count is
- * ever 0, look at the words in your topic description.
- *
- * Check the hints folder for more guidance!
- */
 const tools = [
+
   {
     type: "function",
-    name: "get_open_source_news",
-    description:
-      "Retrieve recent news about open-source software. Use this before recommending software, in case recent news would change your answer.",
+    name: "search_swaps",
+    description: "Search a local database of open-source software alternatives",
+    strict: true,
     parameters: {
       type: "object",
       properties: {
-        topic: {
+        query: {
           type: "string",
-          // TODO: Step 1 - Write a description that asks for one search keyword.
-          description: `One search keyword based on the user's request. If the user asks about a software product, the topic should only be the product's name. e.g. "Slack" or "Zoom". Otherwise topic should be one word like "AI" or "Security".`,
+          description: "Search term for finding open-source software alternatives. One search keyword based on the user's request. If the user asks about a software product, the topic should only be the product's name. e.g. Slack or Zoom. Otherwise topic should be one word like AI or Security",
         },
       },
-      required: ["topic"],
+      required: ["query"],
       additionalProperties: false,
     },
-    strict: true,
-  },
+  }
+  /**
+   * Challenge: Define search_swaps
+   *
+   * OpenSwap needs a function tool to search its database of open-source alternatives.
+   *
+   * Your task:
+   *
+   * 1. Define one function tool named search_swaps with a model-facing description.
+   * 2. Give it a strict object schema with one required "query" string and a
+   *    description for that input.
+   * 3. Update the system prompt to introduce search_swaps and when to use it.
+   *
+   * This is just the first draft for testing; don't optimize or build a loop
+   * yet. Just compare the query with the database matches in the console.
+   *
+   * Check the hints folder for more guidance!
+   */
 ];
 
-const userPrompt = "I want to replace Calendly for our team. We need SSO authentication and source code access.";
+const userPrompt =
+  "I want to replace Slack for our team. We need end-to-end encryption and unlimited message history.";
 
-async function getOpenSourceNews(topic) {
-  const rawNews = await readFile(
-    new URL("./news.json", import.meta.url),
-    "utf8"
-  );
-  let results = JSON.parse(rawNews);
+async function runAgent(userPrompt) {
+  const response = await client.responses.create({
+    model: process.env.AI_MODEL,
+    instructions: systemPrompt,
+    input: userPrompt,
+    tools,
+  });
 
-  if (topic) {
-    const keyword = topic.toLowerCase();
-    results = results.filter(
-      (item) =>
-        item.title.toLowerCase().includes(keyword) ||
-        item.details.toLowerCase().includes(keyword)
-    );
+  const toolCall = response.output.at(-1);
+
+  if (toolCall?.type !== "function_call") {
+    return response.output_text || "Something went wrong. Please try again.";
   }
 
-  return results.slice(0, 5);
-}
+  console.log("Tool call requested:", toolCall.name);
+  console.log("Arguments:", toolCall.arguments);
 
-async function runAgent() {
-  // Keep a running input context array so later turns can see earlier output.
-  const inputContext = [{ role: "user", content: userPrompt }];
-  const maxTurns = 5;
+  const toolInput = JSON.parse(toolCall.arguments);
+  const result = await searchSwaps(toolInput);
 
-  let turnCount = 0;
+  console.log("Database matches:", result.totalMatches);
+  console.log("Matched swaps:", result.swaps.map((swap) => swap.name));
 
-  while (turnCount < maxTurns) {
-    turnCount++;
-    console.log(`Turn ${turnCount}`);
-
-    const turnResponse = await client.responses.create({
-      model: process.env.AI_MODEL,
-      instructions: systemPrompt,
-      input: inputContext,
-      tools,
-    });
-
-    // Preserve the model's whole output turn for the next request
-    inputContext.push(...turnResponse.output);
-
-    const latestOutputItem = turnResponse.output.at(-1);
-
-    if (latestOutputItem?.type === "message") {
-      console.log("\n" + (turnResponse.output_text || "Something went wrong. Please try again."));
-      return;
-    }
-
-    if (latestOutputItem?.type === "function_call") {
-      console.log("Tool call requested:", latestOutputItem.name);
-      console.log("Call ID:", latestOutputItem.call_id);
-      console.log("Arguments:", latestOutputItem.arguments);
-
-      if (latestOutputItem.name === "get_open_source_news") {
-        // TODO: Step 2 - parse latestOutputItem.arguments and pass the topic
-        // into getOpenSourceNews
-        const toolInput = JSON.parse(latestOutputItem.arguments)
-
-        // Run the tool locally
-        const result = await getOpenSourceNews(toolInput.topic);
-        console.log("get_open_source_news executed: Got", result.length, "items");
-
-        // Tool outputs must point back to the call_id of the tool request
-        inputContext.push({
-          type: "function_call_output",
-          call_id: latestOutputItem.call_id,
-          output: JSON.stringify(result),
-        });
-      }
-
-      continue;
-    }
-
-    console.log("Latest item type:", latestOutputItem?.type ?? "none");
-  }
-
-  console.log("\nMax turns reached before the model returned a final answer.");
+  return "The diagnostic run is complete. Check the server console to compare the tool arguments with the database matches.";
 }
 
 // Run the agent when the frontend calls this backend route.
 app.post("/api/agent", async (_req, res) => {
   try {
-    await runAgent();
-    res.json({ status: "ok" });
+    const agentResponse = await runAgent(userPrompt);
+    console.log(agentResponse);
+    res.json({ status: "ok", agentResponse });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ status: "error", message: "Something went wrong. Please try again." });
+    res.status(500).json({ error: "Something went wrong with the AI request." });
   }
 });
 
