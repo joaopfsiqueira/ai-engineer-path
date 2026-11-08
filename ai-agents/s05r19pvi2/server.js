@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import express from "express";
 import OpenAI from "openai";
 
@@ -14,8 +15,6 @@ const systemPrompt = `You are OpenSwap, an AI assistant that helps users find op
 
 Use the get_open_source_news tool before recommending software in case recent news would change your answer.`;
 
-const userPrompt = "I want to replace Calendly for our team. We need SSO authentication and source code access.";
-
 const tools = [
   {
     type: "function",
@@ -25,19 +24,26 @@ const tools = [
   },
 ];
 
-async function runAgent() {
-  const inputContext = [
-    {
-      role: "user",
-      content: userPrompt
-    }
-  ]
-  const maxTurns = 5;
-  let turnCounter = 0;
+const userPrompt = "I want to replace Calendly for our team. We need SSO authentication and source code access.";
 
-  while (turnCounter < maxTurns) {
-    console.log(`Turn ${turnCounter + 1}`)
-    turnCounter++;
+async function getOpenSourceNews() {
+  const rawNews = await readFile(
+    new URL("./news.json", import.meta.url),
+    "utf8"
+  );
+  return JSON.parse(rawNews);
+}
+
+async function runAgent() {
+  // Keep a running input context array so later turns can see earlier output.
+  const inputContext = [{ role: "user", content: userPrompt }];
+  const maxTurns = 5;
+
+  let turnCount = 0;
+
+  while (turnCount < maxTurns) {
+    turnCount++;
+    console.log(`Turn ${turnCount}`);
 
     const turnResponse = await client.responses.create({
       model: process.env.AI_MODEL,
@@ -46,12 +52,59 @@ async function runAgent() {
       tools,
     });
 
-    console.log("\nFull output array:", JSON.stringify(turnResponse.output, null, 2));
+    const latestOutputItem = turnResponse.output.at(-1);
 
+    if (latestOutputItem?.type === "message") {
+      console.log("\n" + (turnResponse.output_text || "Something went wrong. Please try again."));
+      return;
+    }
+
+    if (latestOutputItem?.type === "function_call") {
+      console.log("Tool call requested:", latestOutputItem.name);
+      console.log("Call ID:", latestOutputItem.call_id);
+
+      if (latestOutputItem.name === "get_open_source_news") {
+
+      /**
+       * Challenge: Feed Tool Results Back to the Model
+       *
+       * The model has requested a tool and our app can run it.
+       * But the next model turn still needs the request and its result.
+       *
+       * Your task:
+       *
+       * 1. Push the original function_call into inputContext.
+       * 2. Push a function_call_output object into inputContext with:
+       *    - type: "function_call_output"
+       *    - call_id: the same call_id from latestOutputItem
+       *    - output: the result as a JSON string with JSON.stringify
+       *
+       * Check the hints folder for more guidance!
+      */
+
+        // Push the original function_call into inputContext.
+        inputContext.push(latestOutputItem)
+
+        // Run the tool locally
+        const openSourceNews = await getOpenSourceNews();
+        console.log("get_open_source_news executed: Got", openSourceNews.length, "items");
+
+        // Push a function_call_output object into inputContext
+        inputContext.push({
+          type: "function_call_output",
+          call_id: latestOutputItem.call_id,
+          output: JSON.stringify(openSourceNews)
+        })
+
+      }
+
+      continue;
+    }
+
+    console.log("Latest item type:", latestOutputItem?.type ?? "none");
   }
 
-  // Inspect what came back
-  console.log("Maximum Turns Exceeded");
+  console.log("\nMax turns reached before the model returned a final answer.");
 }
 
 // Run the agent when the frontend calls this backend route.
