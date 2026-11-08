@@ -52,6 +52,11 @@ async function runAgent() {
       tools,
     });
 
+    console.log(turnResponse.output);
+    // Preserve all output items for the next turn
+    inputContext.push(...turnResponse.output);
+
+
     const latestOutputItem = turnResponse.output.at(-1);
 
     if (latestOutputItem?.type === "message") {
@@ -64,38 +69,18 @@ async function runAgent() {
       console.log("Call ID:", latestOutputItem.call_id);
 
       if (latestOutputItem.name === "get_open_source_news") {
-
-      /**
-       * Challenge: Feed Tool Results Back to the Model
-       *
-       * The model has requested a tool and our app can run it.
-       * But the next model turn still needs the request and its result.
-       *
-       * Your task:
-       *
-       * 1. Push the original function_call into inputContext.
-       * 2. Push a function_call_output object into inputContext with:
-       *    - type: "function_call_output"
-       *    - call_id: the same call_id from latestOutputItem
-       *    - output: the result as a JSON string with JSON.stringify
-       *
-       * Check the hints folder for more guidance!
-      */
-
-        // Push the original function_call into inputContext.
-        inputContext.push(latestOutputItem)
-
         // Run the tool locally
         const openSourceNews = await getOpenSourceNews();
         console.log("get_open_source_news executed: Got", openSourceNews.length, "items");
 
-        // Push a function_call_output object into inputContext
+ 
+
+        // Tool outputs must point back to the call_id of the tool request
         inputContext.push({
           type: "function_call_output",
           call_id: latestOutputItem.call_id,
-          output: JSON.stringify(openSourceNews)
-        })
-
+          output: JSON.stringify(openSourceNews),
+        });
       }
 
       continue;
