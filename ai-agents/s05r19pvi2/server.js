@@ -1,3 +1,4 @@
+import "./environment.js";
 import { readFile } from "node:fs/promises";
 import express from "express";
 import OpenAI from "openai";
@@ -21,81 +22,67 @@ const tools = [
     name: "get_open_source_news",
     description:
       "Retrieve recent news about open-source software. Use this before recommending software, in case recent news would change your answer.",
+    parameters: {
+      type: "object",
+      properties: {
+        topic: {
+          type: "string",
+          description: "The news topic to search for"
+        }
+      },
+      required: ["topic"],
+      additionalProperties: false, 
+    },
+    strict: true
   },
 ];
 
-const userPrompt = "I want to replace Calendly for our team. We need SSO authentication and source code access.";
+const userPrompt =
+  "I want to replace Calendly for our team. We need SSO authentication and source code access.";
 
-async function getOpenSourceNews() {
+async function getOpenSourceNews(topic) {
   const rawNews = await readFile(
     new URL("./news.json", import.meta.url),
     "utf8"
   );
-  return JSON.parse(rawNews);
-}
+  let results = JSON.parse(rawNews);
 
-async function runAgent() {
-  // Keep a running input context array so later turns can see earlier output.
-  const inputContext = [{ role: "user", content: userPrompt }];
-  const maxTurns = 5;
-
-  let turnCount = 0;
-
-  while (turnCount < maxTurns) {
-    turnCount++;
-    console.log(`Turn ${turnCount}`);
-
-    const turnResponse = await client.responses.create({
-      model: process.env.AI_MODEL,
-      instructions: systemPrompt,
-      input: inputContext,
-      tools,
-    });
-
-    console.log(turnResponse.output);
-    // Preserve all output items for the next turn
-    inputContext.push(...turnResponse.output);
-
-
-    const latestOutputItem = turnResponse.output.at(-1);
-
-    if (latestOutputItem?.type === "message") {
-      console.log("\n" + (turnResponse.output_text || "Something went wrong. Please try again."));
-      return;
-    }
-
-    if (latestOutputItem?.type === "function_call") {
-      console.log("Tool call requested:", latestOutputItem.name);
-      console.log("Call ID:", latestOutputItem.call_id);
-
-      if (latestOutputItem.name === "get_open_source_news") {
-        // Run the tool locally
-        const openSourceNews = await getOpenSourceNews();
-        console.log("get_open_source_news executed: Got", openSourceNews.length, "items");
-
- 
-
-        // Tool outputs must point back to the call_id of the tool request
-        inputContext.push({
-          type: "function_call_output",
-          call_id: latestOutputItem.call_id,
-          output: JSON.stringify(openSourceNews),
-        });
-      }
-
-      continue;
-    }
-
-    console.log("Latest item type:", latestOutputItem?.type ?? "none");
+  if (topic) {
+    const keyword = topic.toLowerCase();
+    results = results.filter(
+      (item) =>
+        item.title.toLowerCase().includes(keyword) ||
+        item.details.toLowerCase().includes(keyword)
+    );
   }
 
-  console.log("\nMax turns reached before the model returned a final answer.");
+  return results.slice(0, 5);
 }
 
-// Run the agent when the frontend calls this backend route.
+async function runDemo() {
+  const response = await client.responses.create({
+    model: process.env.AI_MODEL,
+    instructions: systemPrompt,
+    input: [{ role: "user", content: userPrompt }],
+    tools,
+  });
+
+  const latestOutputItem = response.output.at(-1);
+
+  if (latestOutputItem?.type === "function_call") {
+    console.log("Tool call requested:", latestOutputItem.name);
+    console.log("Call ID:", latestOutputItem.call_id);
+    console.log("Arguments: ", latestOutputItem.arguments)
+    return;
+  }
+
+  console.log("Latest item type:", latestOutputItem?.type ?? "none");
+}
+
+// Run the demo when the frontend calls this backend route.
 app.post("/api/agent", async (_req, res) => {
   try {
-    await runAgent();
+    await runDemo();
     res.json({ status: "ok" });
   } catch (error) {
     console.error(error);
@@ -104,7 +91,7 @@ app.post("/api/agent", async (_req, res) => {
 });
 
 // Start the Express server so the frontend can talk to it
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Backend server running at http://localhost:${PORT}`);
 });
