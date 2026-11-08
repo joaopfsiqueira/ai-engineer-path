@@ -11,53 +11,68 @@ const client = new OpenAI({
   apiKey: process.env.AI_KEY,
   baseURL: process.env.AI_URL,
 });
-const systemPrompt = `You are OpenSwap, an AI assistant that helps users find open-source alternatives to popular software.
+
+const systemPrompt = `You are OpenSwap, an AI assistant that helps users find
+open-source alternatives to popular software. 
 
 Use the search_swaps tool to search the local database when recommending alternatives. 
-Base your recommendations on the database results rather than your memory.`;
+Base your recommendations on the database results rather than memory.`;
 
 const tools = [
-
-  {
-    type: "function",
-    name: "search_swaps",
-    description: "Search a local database of open-source software alternatives",
-    strict: true,
-    parameters: {
-      type: "object",
-      properties: {
-        query: {
-          type: "string",
-          description: "Search term for finding open-source software alternatives. One search keyword based on the user's request. If the user asks about a software product, the topic should only be the product's name. e.g. Slack or Zoom. Otherwise topic should be one word like AI or Security",
-        },
-      },
-      required: ["query"],
-      additionalProperties: false,
-    },
-  }
   /**
-   * Challenge: Define search_swaps
+   * Challenge: Improve the Tool Definition
    *
-   * OpenSwap needs a function tool to search its database of open-source alternatives.
+   * The model is picking search_swaps, but its query includes more than the
+   * name of the software the user wants to replace.
+   *
+   * Before editing, answer four questions from the code:
+   *
+   * - When should the model select this tool?
+   * - What argument shape does the schema already enforce?
+   * - What exact values does the matcher accept?
+   * - What information returns after a match?
    *
    * Your task:
    *
-   * 1. Define one function tool named search_swaps with a model-facing description.
-   * 2. Give it a strict object schema with one required "query" string and a
-   *    description for that input.
-   * 3. Update the system prompt to introduce search_swaps and when to use it.
+   * 1. Update the tool description to explain when search_swaps should be used
+   *    to find alternatives in OpenSwap's database.
+   * 2. Update the query description so the model passes only the name of
+   *    the software being replaced.
    *
-   * This is just the first draft for testing; don't optimize or build a loop
-   * yet. Just compare the query with the database matches in the console.
+   * Leave the runAgent function and database search unchanged. A focused
+   * Slack query should return five database matches.
    *
    * Check the hints folder for more guidance!
    */
+  {
+    type: "function",
+    "name": "search_swaps",
+    "description": "Search a local database of open-source software alternatives to a specified product.",
+    "strict": true,
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Only the name of the product to find open-source software alternatives for. Do not include any requirements or other words."
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "additionalProperties": false
+    }
+  },
 ];
 
 const userPrompt =
   "I want to replace Slack for our team. We need end-to-end encryption and unlimited message history.";
 
 async function runAgent(userPrompt) {
+  // We never typed this in a UI, but we still send a formatted user prompt.
+  // Log it so we can compare what we sent with the query the model puts in the tool call.
+  console.log("User prompt:", userPrompt);
+
   const response = await client.responses.create({
     model: process.env.AI_MODEL,
     instructions: systemPrompt,
