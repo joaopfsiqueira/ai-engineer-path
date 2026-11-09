@@ -34,7 +34,7 @@ app.post("/api/swaps", async (req, res) => {
 
   // Challenge: See challenge.md for instructions.
   try {
-    const swapAgentResponse = await runAgent({ userPrompt });
+    const swapAgentResponse = await runAgent({ client, userPrompt });
     res.json({ swapAgentResponse });
   } catch (error) {
     // Give the browser one stable error shape for agent or provider failures.
