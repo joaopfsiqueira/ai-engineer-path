@@ -24,28 +24,54 @@ export async function runAgent({ client, userPrompt }) {
       input: inputContext,
       tools,
     });
+    
+    console.log(turnResponse.output)
 
     // Preserve the model's whole output turn for the next request.
     inputContext.push(...turnResponse.output);
 
-    // Inspect the latest item to choose the next step.
-    const latestItem = turnResponse.output.at(-1);
+    /**
+     * Challenge: Handling Every Tool Call
+     *
+     * Our code only inspects the last item in the output array, 
+     * so every earlier tool call is dropped and the model never 
+     * gets the tool results it asked for.
+     *
+     * Your task:
+     *
+     * 1. Filter turnResponse.output to collect every item whose type is
+     *    "function_call".
+     * 2. If there are no tool calls, return the model's final answer text.
+     * 3. Loop over the tool calls, run each one, and push a
+     *    function_call_output carrying that call's own call_id.
+     *
+     * You'll know it works when a two-product request comes back with real
+     * matches for both products, and the logs show the model handled 
+     * two tool calls in the same turn.
+     *
+     * Check the hints folder for more guidance!
+     */
 
-    // Return the final answer when the model is done.
-    if (latestItem.type === "message") {
-      return turnResponse.output_text;
+    // Create a list of all tool calls requested in this turn.
+    const toolCalls = turnResponse.output.filter(
+      (outputItem) => outputItem.type === "function_call"
+    )
+
+    // If there are no tool calls, return the model's final output text.
+    if (toolCalls.length === 0) {
+      return turnResponse.output_text
     }
 
-    // Handle a request to run a tool.
-    if (latestItem.type === "function_call") {
+    // Loop over the tool calls, run each one
+    for (const toolCall of toolCalls) {
       // Show which tool the model requested and what it sent.
-      console.log("Tool call requested:", latestItem.name);
-      console.log("Arguments:", latestItem.arguments);
+      console.log("Tool call requested:", toolCall.name);
+      console.log("Arguments:", toolCall.arguments);
 
       // Run the requested local tool.
-      if (latestItem.name === "search_swaps") {
+      if (toolCall.name === "search_swaps") {
         // Parse the tool's JSON arguments.
-        const toolInput = JSON.parse(latestItem.arguments);
+        const toolInput = JSON.parse(toolCall.arguments);
         // Call the local searchSwaps function with the model's arguments.
         const result = await searchSwaps(toolInput);
         console.log("Database matches:", result.totalMatches);
@@ -53,7 +79,7 @@ export async function runAgent({ client, userPrompt }) {
         // Send the tool result back to the model.
         inputContext.push({
           type: "function_call_output",
-          call_id: latestItem.call_id,
+          call_id: toolCall.call_id,
           output: JSON.stringify(result),
         });
       }
