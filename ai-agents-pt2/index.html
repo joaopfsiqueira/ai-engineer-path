@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Find open-source alternatives by describing what you want to replace or selecting a starter swap." />
+  <title>OpenSwap</title>
+  <link rel="stylesheet" href="frontend/style.css" />
+</head>
+
+<body>
+  <main id="app" class="app-shell">
+    <header class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M6 8h10.5l-3-3M18 16H7.5l3 3" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"
+          stroke-linejoin="round" />
+      </svg>
+      <span class="brand-name">Open<span>Swap</span></span>
+    </header>
+
+    <section id="search-flow" class="search-flow">
+      <section class="starter-swaps-section">
+        <h2>Wanna swap any of these?</h2>
+        <div id="starter-swaps" class="starter-swaps-list"></div>
+      </section>
+
+      <section id="output-container" class="output-section output-shell hidden">
+        <div id="output-content" class="output-content" aria-live="polite"></div>
+      </section>
+
+      <section id="input-panel" class="input-panel">
+        <form id="search-form" class="input-form">
+          <div id="input-area" class="input-area">
+            <label class="prompt-label" for="user-input">Write down any other tools or specific requirements:</label>
+            <textarea id="user-input"
+              placeholder="E.g. 'I need an email marketing tool for my university club.'"></textarea>
+          </div>
+
+          <div class="form-footer">
+            <button type="submit" id="submit-button" class="submit-button">
+              <span id="submit-label">Swap it</span>
+            </button>
+          </div>
+        </form>
+      </section>
+    </section>
+  </main>
+
+  <script type="module" src="./frontend/index.js"></script>
+</body>
+
+</html>
