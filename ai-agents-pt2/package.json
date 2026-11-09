@@ -11,14 +11,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "dompurify": "^3.4.8",
+    "dotenv": "^18.0.10",
     "express": "^5.2.1",
-    "openai": "^6.41.0",
     "marked": "^18.0.4",
-    "dompurify": "^3.4.8"
+    "openai": "^6.41.0"
   },
   "devDependencies": {
-    "vite": "^6.4.3",
-    "concurrently": "^10.0.3"
+    "concurrently": "^10.0.3",
+    "vite": "^6.4.3"
   },
   "description": "Lesson from Scrimba's Intro to AI Agents"
 }
