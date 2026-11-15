@@ -1,78 +1,115 @@
-import * as ui from "./ui.js";
+import "../environment.js";
+import { systemPrompt } from "./prompts.js";
+import { tools } from "./tools.js";
+import { searchSwaps } from "../store/index.js";
 
-const searchForm = document.getElementById("search-form");
+// Runs the agent loop until it finishes with an answer
+export async function runAgent({ client, userPrompt }) {
+  // Start the conversation with the user's request.
+  const inputContext = [{ role: "user", content: userPrompt }];
 
-start();
+  // Limit how many turns the agent can take to avoid infinite loops.
+  const maxTurns = 5;
+  let turnCount = 0;
 
-async function start() {
-  // Register event handlers and load initial data.
-  document.getElementById("user-input").addEventListener("input", ui.handleInputChange);
-  searchForm.addEventListener("submit", handleSwapRequest);
-  ui.syncSubmitAvailability();
+  // Keep going until the agent finishes or runs out of turns.
+  while (turnCount < maxTurns) {
+    turnCount++;
+    console.log(`Turn ${turnCount}`);
 
-  // Load the popular software names from the server so the UI mirrors the database.
-  await ui.loadPopularSoftware();
-}
-
-async function handleSwapRequest(e) {
-  // Keep the form on the page so JavaScript can handle the request
-  e.preventDefault();
-
-  const userPrompt = buildPrompt();
-
-  if (!userPrompt) {
-    ui.renderOutputError("Type what you want to replace or select at least one starter swap.");
-    ui.syncSubmitAvailability();
-    return;
-  }
-
-  // Show the loading state before the network request starts
-  ui.setLoading(true);
-
-  try {
-    // Send the prompt to the Express route
-    const response = await fetch("/api/swaps", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userPrompt }),
+    // Send the inputContext to the model and get its response.
+    const turnResponse = await client.responses.create({
+      model: process.env.AI_MODEL,
+      instructions: systemPrompt,
+      input: inputContext,
+      tools,
     });
 
-    const data = await response.json();
+    // Preserve the model's whole output turn for the next request.
+    inputContext.push(...turnResponse.output);
 
-    if (!response.ok) {
-      throw new Error(data.error || "Server returned an error");
+    // Create a list of all tool calls requested in this turn.
+    const toolCalls = turnResponse.output.filter(
+      (item) => item.type === "function_call"
+    );
+
+    // If there are no tool calls, return the model's final output text.
+    if (toolCalls.length === 0) {
+      return turnResponse.output_text;
     }
 
-    // Render the model's final markdown response
-    ui.renderMarkdownSafely(data.swapAgentResponse);
-  } catch (error) {
-    console.error(error);
-    ui.renderOutputError("Sorry, something went wrong. Please try again.");
-  } finally {
-    // Always reset the UI, even if the request fails
-    ui.setLoading(false);
+    // Process each tool call in the order they were requested.
+    for (const toolCall of toolCalls) {
+      console.log("Tool call requested:", toolCall.name);
+      console.log("Arguments:", toolCall.arguments);
+
+      const result = await runTool(toolCall)
+      inputContext.push({
+        type: "function_call_output",
+        call_id: toolCall.call_id,
+        output: JSON.stringify(result),
+      });
+    }
   }
+
+  // Fall back if the agent uses every turn.
+  return "Something went wrong. Please try again.";
 }
 
-// Build a prompt that includes the user's text and any selected starter swaps
-function buildPrompt() {
-  const userInputText = ui.getUserInputText();
-  const selectedSwapNames = ui.getSelectedSwapNames();
-  const promptSections = [];
 
-  // Include the starter swaps if any are selected
-  if (selectedSwapNames.length > 0) {
-    const selectedSwapsString = selectedSwapNames.map((swapName) => `- ${swapName}`).join("\n");
-    promptSections.push(
-      `Starter swaps selected:\n${selectedSwapsString}`
-    );
+/**
+ * Challenge: Always Return a Tool Result
+ *
+ * 1. Give each result a status. "ok" when the search returned records,
+ *    "no_results" when it ran but matched nothing (with a message the model can
+ *    pass to the user), and "error" when the call could not complete.
+ * 2. Return an "error" result for an unknown tool name or an empty query
+ *
+ * When fixed, a known product, an unknown product, and the simulated Notion
+ * failure will all produce model-readable results instead of breaking the
+ * request.
+ *
+ * Check the hints folder for more guidance!
+ */
+async function runTool(toolCall) {
+  if (toolCall.name !== "search_swaps") {
+    return {
+      status: "error",
+      message: "Unknown tool"
+    }
+  }
+  // Parse the tool's JSON arguments.
+  const toolInput = JSON.parse(toolCall.arguments);
+
+  if (!toolInput.query) {
+    return {
+      status: "error",
+      message: "Query required."
+    }
   }
 
-  // Include the user's text if they typed anything
-  if (userInputText) {
-    promptSections.push(`User request:\n${userInputText}`);
-  }
+  try {
+    // Call the local searchSwaps function with the model's arguments.
+    const result = await searchSwaps(toolInput);
+    console.log("Database matches:", result.totalMatches);
 
-  // Omit empty inputs, then separate the remaining labeled sections.
-  return promptSections.join("\n\n");
+    // If the search returned no records, return a "no_results" status
+    if (result.totalMatches === 0) {
+      return {
+        status: "no_results",
+        message: "No swaps found matching that product"
+      }
+    }
+
+    return {
+      status: "ok",
+      result: result.swaps
+    }
+  } catch(error) {
+    // If the tool call failed, return an error result the model can read.
+    return {
+      status: "error",
+      message: error.message
+    }
+  }
 }
