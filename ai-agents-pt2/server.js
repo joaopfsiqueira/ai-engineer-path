@@ -78,7 +78,20 @@ app.post("/api/swaps", async (req, res) => {
     }
 
     // TODO: Challenge Step 3. Generate a short title from the chat's first message.
-    const title = "New conversation";
+    const titleResponse = await client.responses.create({
+      model: process.env.AI_MODEL,
+      input: `Write a sidebar title: ${userPrompt}`,
+      instructions: `You write descriptive and differentiated titles for an app that recommends open source alternatives. 
+      
+      Only 3 to 6 words in plain text output. 
+      
+      Never use generic words like open source, alternative, recommendation, etc. in your titles.
+      
+      `
+    })
+
+    const title = titleResponse.output_text;
+
 
     // Run the agent loop until it has a final answer for this prompt.
     const swapAgentResponse = await runAgent({ client, userPrompt });
@@ -87,6 +100,17 @@ app.post("/api/swaps", async (req, res) => {
     const savedConversation = await conversationStore.saveConversation({
       ...conversation,
       title,
+      chatHistory: [
+        ...conversation.chatHistory,
+        {
+          role: "user",
+          content: userPrompt
+        },
+        {
+          role: "assistant",
+          content: swapAgentResponse
+        }
+      ]
     });
 
     res.json({ conversation: getConversationForBrowser(savedConversation) });
