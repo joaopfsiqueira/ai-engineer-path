@@ -18,4 +18,23 @@ export const tools = [
     },
     strict: true,
   },
+  {
+    type: "function",
+    name: "check_health",
+    description:
+      "Check the maintenance health of a project. Use this to verify if a suggested alternative is actively maintained.",
+    parameters: {
+      type: "object",
+      properties: {
+        project_name: {
+          type: "string",
+          description:
+            "A project name. Examples: 'Mumble' or 'Strapi'.",
+        },
+      },
+      required: ["project_name"],
+      additionalProperties: false,
+    },
+    strict: true,
+  },
 ];
