@@ -3,7 +3,9 @@ const requiredEnvironmentVariables = [
   "AI_MODEL",
   "AI_URL"
 ];
-const optionalEnvironmentVariables = [];
+const optionalEnvironmentVariables = [
+  "GITHUB_TOKEN"
+];
 const missingEnvironmentVariables = () =>
   requiredEnvironmentVariables.filter((name) => !process.env[name]);
 
