@@ -43,7 +43,10 @@ app.post("/api/conversations", async (_req, res) => {
 // Reopen the visible transcript. Model history stays on the server.
 app.get("/api/conversations/:conversationId", async (req, res) => {
   try {
-    res.status(501).json({ error: "Reopening a chat isn't built yet." });
+    const conversationId = req.params.conversationId;
+    const conversation = await conversationStore.getConversation(conversationId)
+    // TODO: Challenge Step 1. Send the page the selected conversation.
+    res.json({ conversation });
   } catch (error) {
     handleServerError(res, error);
   }
@@ -74,11 +77,13 @@ app.post("/api/swaps", async (req, res) => {
       return;
     }
 
+    // TODO: Challenge Step 3. Generate a short title from the chat's first message.
     const title = "New conversation";
 
     // Run the agent loop until it has a final answer for this prompt.
     const swapAgentResponse = await runAgent({ client, userPrompt });
 
+    // TODO: Challenge Step 2. Save the new exchange to the chat history.
     const savedConversation = await conversationStore.saveConversation({
       ...conversation,
       title,
