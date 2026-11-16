@@ -2,6 +2,7 @@ import "../environment.js";
 import { systemPrompt } from "./prompts.js";
 import { tools } from "./tools.js";
 import { searchSwaps } from "../store/swaps.js";
+import { checkHealth } from "../store/github.js";
 
 // Runs the agent loop until it finishes with an answer
 export async function runAgent({ client, userPrompt }) {
@@ -46,6 +47,10 @@ export async function runAgent({ client, userPrompt }) {
       console.log("Arguments:", toolCall.arguments);
 
       const result = await runTool(toolCall);
+      console.log(
+        `Tool result [${result.status}]:`,
+        result.message || `${result.result?.length ?? 0} items`
+      );
 
       inputContext.push({
         type: "function_call_output",
@@ -55,8 +60,42 @@ export async function runAgent({ client, userPrompt }) {
     }
   }
 
+  /**
+   * Challenge: Complete the Agent Loop
+   *
+   * When the loop runs out of turns, we return a generic apology and throw
+   * away the tool results already sitting in inputContext.
+   *
+   * Your task:
+   *
+   * 1. Make a seperate responses.create() request after turns run out that 
+   *    returns an answer which:
+   *    A) Recommends what the OpenSwap agent managed to verify 
+   *    B) States what information couldn't be verified
+   *
+   * 2. Set tool_choice: "none" so the model can't call tools in this request.
+   *
+   * 3. Return that response's text instead of the generic error message.
+   *
+   * Leave maxTurns at 3, then run the demo request again. When the turns
+   * run out, you should get a final answer written from the tool results
+   * already in the context.
+   *
+   * Check the hints folder for more guidance!
+   */
+
+  const finalResponse = await client.responses.create({
+    model: process.env.AI_MODEL,
+    instructions: `${systemPrompt}
+
+    You have reached the maximum number of turns. Write a final answer with recommendations based on the information you were able to verify. If some information could not be verified, state so in your answer instead of guessing.
+    `,
+    input: inputContext,
+    tool_choice: "none"
+  })
+
   // Fall back if the agent uses every turn.
-  return "Something went wrong. Please try again.";
+  return finalResponse.output_text;
 }
 
 async function runTool(toolCall) {
@@ -68,10 +107,15 @@ async function runTool(toolCall) {
     if (toolCall.name === "search_swaps") {
       return await searchSwaps(toolInput);
     }
+
+    if (toolCall.name === "check_health") {
+      return await checkHealth(toolInput);
+    }
   } catch (error) {
     // If the tool call failed, return an error result the model can read.
     return {
       status: "error",
+      retryable: false,
       message: error.message,
     };
   }
@@ -79,6 +123,7 @@ async function runTool(toolCall) {
   // If the model requested a tool that doesn't exist, return an error result.
   return {
     status: "error",
+    retryable: false,
     message: "Unknown tool",
   };
 }
