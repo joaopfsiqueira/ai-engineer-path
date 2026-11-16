@@ -45,7 +45,10 @@ export async function runAgent({ client, contextHistory, userPrompt }) {
 
     // If there are no tool calls, return the model's final output text.
     if (toolCalls.length === 0) {
-      return turnResponse.output_text;
+      return {
+        swapAgentResponse: turnResponse.output_text,
+        contextHistory: inputContext
+      }
     }
 
     // Process each tool call in the order they were requested.
@@ -84,7 +87,10 @@ export async function runAgent({ client, contextHistory, userPrompt }) {
   // Keep the forced final answer in the history, like every other output turn.
   inputContext.push(...finalResponse.output);
 
-  return finalResponse.output_text;
+  return {
+    swapAgentResponse: turnResponse.output_text,
+    contextHistory: inputContext
+  }
 }
 
 async function runTool(toolCall) {

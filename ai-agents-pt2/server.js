@@ -44,8 +44,7 @@ app.post("/api/conversations", async (_req, res) => {
 app.get("/api/conversations/:conversationId", async (req, res) => {
   try {
     const conversationId = req.params.conversationId;
-    const conversation = await conversationStore.getConversation(conversationId)
-    // TODO: Challenge Step 1. Send the page the selected conversation.
+    const conversation = await conversationStore.getConversation(conversationId);
     res.json({ conversation: getConversationForBrowser(conversation) });
   } catch (error) {
     handleServerError(res, error);
@@ -77,30 +76,27 @@ app.post("/api/swaps", async (req, res) => {
       return;
     }
 
+    // Name a conversation once, from its first message.
     let title = conversation.title;
     if (conversation.chatHistory.length === 0) {
-      // TODO: Challenge Step 3. Generate a short title from the chat's first message.
       const titleResponse = await client.responses.create({
         model: process.env.AI_MODEL,
         input: `Write a sidebar title for this user prompt: ${userPrompt}`,
-        instructions: `You write descriptive and differentiated titles for an app that recommends open source alternatives. 
-        
-        Only 3 to 6 words in plain text output. 
-        
+        instructions: `You write descriptive and differentiated titles for an app that recommends open source alternatives.
+
+        Only 3 to 6 words in plain text output.
+
         Never use generic words like open source, alternative, recommendation, etc. in your titles.
-        
-        Instead, prioritize using mentioned products, software category tags, and additional requirements from the user's prompt.`
-      })
 
+        Instead, prioritize using mentioned products, software category tags, and additional requirements from the user's prompt.`,
+      });
       title = titleResponse.output_text;
-
     }
-
 
     // Run the agent loop until it has a final answer for this prompt.
     const swapAgentResponse = await runAgent({ client, userPrompt });
 
-    // TODO: Challenge Step 2. Save the new exchange to the chat history.
+    // Save the new exchange so the page still has it after a reload.
     const savedConversation = await conversationStore.saveConversation({
       ...conversation,
       title,
@@ -108,13 +104,13 @@ app.post("/api/swaps", async (req, res) => {
         ...conversation.chatHistory,
         {
           role: "user",
-          content: userPrompt
+          content: userPrompt,
         },
         {
           role: "assistant",
-          content: swapAgentResponse
-        }
-      ]
+          content: swapAgentResponse,
+        },
+      ],
     });
 
     res.json({ conversation: getConversationForBrowser(savedConversation) });
