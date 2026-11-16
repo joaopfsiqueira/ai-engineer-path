@@ -2,6 +2,7 @@ import "./environment.js";
 import express from "express";
 import OpenAI from "openai";
 import { runAgent } from "./agent/index.js";
+import { conversationStore } from "./store/conversations.js";
 import { getStarterSwapOptions } from "./store/swaps.js";
 
 // Create the Express app for our backend server
@@ -20,11 +21,44 @@ app.get("/api/popular-software", (_req, res) => {
   res.json({ popularSoftware: getStarterSwapOptions() });
 });
 
-// Accept a user prompt and return the agent's answer
+// List summaries for the sidebar, without either history array.
+app.get("/api/conversations", async (_req, res) => {
+  try {
+    res.json({ conversations: await conversationStore.listConversations() });
+  } catch (error) {
+    handleServerError(res, error);
+  }
+});
+
+// Create the record on first send; opening a fresh chat alone stores nothing.
+app.post("/api/conversations", async (_req, res) => {
+  try {
+    const conversation = await conversationStore.createConversation();
+    res.status(201).json({ conversation: getConversationForBrowser(conversation) });
+  } catch (error) {
+    handleServerError(res, error);
+  }
+});
+
+// Reopen the visible transcript. Model history stays on the server.
+app.get("/api/conversations/:conversationId", async (req, res) => {
+  try {
+    res.status(501).json({ error: "Reopening a chat isn't built yet." });
+  } catch (error) {
+    handleServerError(res, error);
+  }
+});
+
+// Continue the selected conversation using its ID and the new text from the browser.
 app.post("/api/swaps", async (req, res) => {
-  const { userPrompt } = req.body;
+  const { conversationId, userPrompt } = req.body;
 
   // Reject empty input before it can spend a model request
+  if (typeof conversationId !== "string" || !conversationId.trim()) {
+    res.status(400).json({ error: "A conversation id is required." });
+    return;
+  }
+
   if (typeof userPrompt !== "string" || !userPrompt.trim()) {
     res.status(400).json({ error: "A user prompt is required." });
     return;
@@ -33,14 +67,45 @@ app.post("/api/swaps", async (req, res) => {
   console.log("[/api/swaps] prompt:", userPrompt);
 
   try {
+    const conversation = await conversationStore.getConversation(conversationId);
+
+    if (!conversation) {
+      res.status(404).json({ error: "Conversation not found." });
+      return;
+    }
+
+    const title = "New conversation";
+
+    // Run the agent loop until it has a final answer for this prompt.
     const swapAgentResponse = await runAgent({ client, userPrompt });
-    res.json({ swapAgentResponse });
+
+    const savedConversation = await conversationStore.saveConversation({
+      ...conversation,
+      title,
+    });
+
+    res.json({ conversation: getConversationForBrowser(savedConversation) });
   } catch (error) {
-    // Give the browser one stable error shape for agent or provider failures.
-    console.error(error);
-    res.status(500).json({ error: "Something went wrong with the AI request." });
+    handleServerError(res, error);
   }
 });
+
+// Select the chat history and metadata, leaving the agent context on the server.
+function getConversationForBrowser(conversation) {
+  return {
+    id: conversation.id,
+    title: conversation.title,
+    createdAt: conversation.createdAt,
+    updatedAt: conversation.updatedAt,
+    chatHistory: conversation.chatHistory,
+  };
+}
+
+// Give the browser one stable error shape for any failure.
+function handleServerError(res, error) {
+  console.error(error);
+  res.status(500).json({ error: "Something went wrong. Please try again." });
+}
 
 // Start the Express server so the frontend can talk to it
 const PORT = process.env.PORT || 3001;
