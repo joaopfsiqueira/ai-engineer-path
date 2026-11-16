@@ -46,7 +46,7 @@ app.get("/api/conversations/:conversationId", async (req, res) => {
     const conversationId = req.params.conversationId;
     const conversation = await conversationStore.getConversation(conversationId)
     // TODO: Challenge Step 1. Send the page the selected conversation.
-    res.json({ conversation });
+    res.json({ conversation: getConversationForBrowser(conversation) });
   } catch (error) {
     handleServerError(res, error);
   }
@@ -77,20 +77,24 @@ app.post("/api/swaps", async (req, res) => {
       return;
     }
 
-    // TODO: Challenge Step 3. Generate a short title from the chat's first message.
-    const titleResponse = await client.responses.create({
-      model: process.env.AI_MODEL,
-      input: `Write a sidebar title: ${userPrompt}`,
-      instructions: `You write descriptive and differentiated titles for an app that recommends open source alternatives. 
-      
-      Only 3 to 6 words in plain text output. 
-      
-      Never use generic words like open source, alternative, recommendation, etc. in your titles.
-      
-      `
-    })
+    let title = conversation.title;
+    if (conversation.chatHistory.length === 0) {
+      // TODO: Challenge Step 3. Generate a short title from the chat's first message.
+      const titleResponse = await client.responses.create({
+        model: process.env.AI_MODEL,
+        input: `Write a sidebar title for this user prompt: ${userPrompt}`,
+        instructions: `You write descriptive and differentiated titles for an app that recommends open source alternatives. 
+        
+        Only 3 to 6 words in plain text output. 
+        
+        Never use generic words like open source, alternative, recommendation, etc. in your titles.
+        
+        Instead, prioritize using mentioned products, software category tags, and additional requirements from the user's prompt.`
+      })
 
-    const title = titleResponse.output_text;
+      title = titleResponse.output_text;
+
+    }
 
 
     // Run the agent loop until it has a final answer for this prompt.
