@@ -3,14 +3,14 @@ export const tools = [
     type: "function",
     name: "search_swaps",
     description:
-      "Search OpenSwap's database for open-source alternatives to a specified product.",
+      "Search OpenSwap's database for open-source alternatives to a specified product or a one word software category tag.",
     parameters: {
       type: "object",
       properties: {
         query: {
           type: "string",
           description:
-            "Only the name of the product being replaced. Do not include any requirements or other words.",
+            "Only the name of the product being replaced or a one word software category tag. Do not include any requirements or other words.",
         },
       },
       required: ["query"],
