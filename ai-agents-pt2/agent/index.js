@@ -1,13 +1,20 @@
 import "../environment.js";
-import { systemPrompt } from "./prompts.js";
+import { systemPrompt, finalAnswerSystemPrompt } from "./prompts.js";
 import { tools } from "./tools.js";
 import { searchSwaps } from "../store/swaps.js";
 import { checkHealth } from "../store/github.js";
 
+// Challenge: See challenge.md for instructions.
 // Runs the agent loop until it finishes with an answer
-export async function runAgent({ client, userPrompt }) {
+export async function runAgent({ client, contextHistory, userPrompt }) {
   // Start the conversation with the user's request.
-  const inputContext = [{ role: "user", content: userPrompt }];
+  const inputContext = [
+    ...contextHistory,
+    { 
+      role: "user", 
+      content: userPrompt 
+    }
+  ];
 
   // Limit how many turns the agent can take to avoid infinite loops.
   const maxTurns = 5;
@@ -60,41 +67,23 @@ export async function runAgent({ client, userPrompt }) {
     }
   }
 
-  /**
-   * Challenge: Complete the Agent Loop
-   *
-   * When the loop runs out of turns, we return a generic apology and throw
-   * away the tool results already sitting in inputContext.
-   *
-   * Your task:
-   *
-   * 1. Make a seperate responses.create() request after turns run out that 
-   *    returns an answer which:
-   *    A) Recommends what the OpenSwap agent managed to verify 
-   *    B) States what information couldn't be verified
-   *
-   * 2. Set tool_choice: "none" so the model can't call tools in this request.
-   *
-   * 3. Return that response's text instead of the generic error message.
-   *
-   * Leave maxTurns at 3, then run the demo request again. When the turns
-   * run out, you should get a final answer written from the tool results
-   * already in the context.
-   *
-   * Check the hints folder for more guidance!
-   */
-
+  // The turns ran out. Make one last request with tool calling switched off,
+  // so the model answers from the tool results already in inputContext.
   const finalResponse = await client.responses.create({
     model: process.env.AI_MODEL,
-    instructions: `${systemPrompt}
-
-    You have reached the maximum number of turns. Write a final answer with recommendations based on the information you were able to verify. If some information could not be verified, state so in your answer instead of guessing.
-    `,
+    // Same assistant, now told the turns are gone.
+    instructions: finalAnswerSystemPrompt,
+    // The same accumulated history, so every tool result is still in view.
     input: inputContext,
-    tool_choice: "none"
-  })
+    // Keep the same tool definitions in the request while forbidding new calls.
+    tools,
+    // tool_choice: "none" is what guarantees text instead of another tool call.
+    tool_choice: "none",
+  });
 
-  // Fall back if the agent uses every turn.
+  // Keep the forced final answer in the history, like every other output turn.
+  inputContext.push(...finalResponse.output);
+
   return finalResponse.output_text;
 }
 
