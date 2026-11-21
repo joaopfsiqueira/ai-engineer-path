@@ -1,7 +1,7 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { streamText } from 'ai';
 import initialMessages from './conversation.js'
-import { ChatView, verifyEnv, formatErrorMessage } from './utils.js';
+import { calculateTokens, ChatView, verifyEnv } from './utils.js';
 
 // Verify that environment variables are set
 verifyEnv();
@@ -20,17 +20,45 @@ const messagesContainer = document.getElementById("messages-container");
 const messages = [...initialMessages];
 const chatView = new ChatView(chatContainer, messagesContainer);
 
+// Message counters are now handled by ChatView
+
 function start() {
   // Display initial conversation
   messages.forEach(message => {
     chatView.addMessage(message);
   });
   
-  // Update initial message counter 
+  // Update initial message counter
   chatView.updateCounters(messages);
 
   // Handle user's message to the AI
   chatForm.addEventListener("submit", handleUserMessage);
+  chatView.scrollToBottom();
+}
+
+/**
+ * Challenge: Token-Based Context Management
+ *
+ * Keep removing the oldest messages from the conversation
+ * until the total token count is under maxTokens.
+ *
+ * Your task:
+ * 1. Use calculateTokens from utils.js to track the token count
+ * 2. Keep removing oldest messages until under tokenLimit (always keep at least 1)
+ * 3. Return the trimmed array
+ * 
+ * 💡 Check the hints folder if you're stuck
+ */
+function getTrimmedContext(messages, tokenLimit) {
+  let tokenCount = calculateTokens(messages)
+  let trimmedMessages = [ ... messages ]
+
+  while (tokenCount > tokenLimit && trimmedMessages.length >= 1) {
+    trimmedMessages.shift()
+    tokenCount = calculateTokens(trimmedMessages)
+  }
+
+  return trimmedMessages
 }
 
 async function handleUserMessage(event) {
@@ -52,8 +80,10 @@ async function handleUserMessage(event) {
   messages.push(assistantMessage);
   chatView.addMessage(assistantMessage);
 
-  // contextMessages currently sends entire history
-  const contextMessages = messages.slice(-10)
+  // Apply token limiting before making API call
+  const MAX_TOKENS = 20000;
+  const contextMessages = getTrimmedContext(messages, MAX_TOKENS);
+  
   // Update counter to show the difference between total and context messages
   chatView.updateCounters(messages, contextMessages);
 
@@ -61,7 +91,7 @@ async function handleUserMessage(event) {
   try {
     const response = await streamText({
       model: openRouterModel,
-      messages
+      messages: contextMessages
     });
 
     // Update the assistant message as text arrives and check for error events
@@ -76,7 +106,7 @@ async function handleUserMessage(event) {
     }
 
   } catch (err) {
-    assistantMessage.content = formatErrorMessage(err);
+    assistantMessage.content = `**Error:** ${err.message}`;
     chatView.updateLatestMessage(assistantMessage.content);
   }
   

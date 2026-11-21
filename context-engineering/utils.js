@@ -1,3 +1,4 @@
+import { encode } from 'gpt-tokenizer';
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 
@@ -13,6 +14,21 @@ export function verifyEnv() {
   }
 }
 
+export function calculateTokens(messages) {
+  // Combine all message content
+  const allContent = messages.map(m => m.content).join();
+
+  // Use gpt-tokenizer to get token count
+  const tokens = encode(allContent);
+  return tokens.length;
+}
+
+export function printUsageData(usage, totalUsage) {
+    console.log('\n📈 Token Usage Report:');
+    console.log('   Last Step:', usage);
+    console.log('   Overall:', totalUsage);
+}
+
 
 export class ChatView {
   constructor(chatContainer, messagesContainer) {
@@ -20,6 +36,10 @@ export class ChatView {
     this.messagesContainer = messagesContainer;
     this.messageCount = 0;
     this.maxMessages = 20;
+    
+    // Get counter elements from the chat container
+    this.totalTokensCounter = chatContainer.querySelector('#total-tokens-counter');
+    this.contextTokensCounter = chatContainer.querySelector('#context-tokens-counter');
   }
 
   addMessage(message) {
@@ -79,5 +99,13 @@ export class ChatView {
 
   scrollToBottom() {
     this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+  }
+
+  updateCounters(allMessages, contextMessages = null) {
+    const totalTokens = calculateTokens(allMessages);
+    const contextTokens = contextMessages ? calculateTokens(contextMessages) : totalTokens;
+    
+    this.totalTokensCounter.textContent = `${totalTokens} total tokens`;
+    this.contextTokensCounter.textContent = `${contextTokens} context tokens`;
   }
 }
