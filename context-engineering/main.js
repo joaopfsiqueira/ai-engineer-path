@@ -1,6 +1,7 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { streamText } from 'ai';
-import { ChatView, verifyEnv } from './utils.js';
+import initialMessages from './conversation.js'
+import { ChatView, verifyEnv, formatErrorMessage } from './utils.js';
 
 // Verify that environment variables are set
 verifyEnv();
@@ -13,38 +14,26 @@ const openRouterModel = openRouter(process.env.MODEL_ID);
 const chatForm = document.getElementById("chat-form");
 const messageInput = document.getElementById("message-input");
 const sendButton = document.getElementById("send-button");
-const messagesContainer = document.getElementById("messages-container");
 const chatContainer = document.getElementById("chat-container");
-const personaSelector = document.getElementById("persona-selector");
+const messagesContainer = document.getElementById("messages-container");
 
-// Create chat view
+const messages = [...initialMessages];
 const chatView = new ChatView(chatContainer, messagesContainer);
 
-// Conversation is initially empty
-const messages = [];
-
-// Create Persona object
-const personas = [
-  { value: 'assistant', label: 'Assistant' },
-  { value: 'eli5', label: 'ELI5' },
-  { value: 'coach', label: 'Coach' },
-];
-
 function start() {
-  // Add options to Persona selector
-  personas.forEach(persona => {
-    const option = document.createElement("option");
-    option.value = persona.value;
-    option.textContent = persona.label;
-    personaSelector.appendChild(option);
+  // Display initial conversation
+  messages.forEach(message => {
+    chatView.addMessage(message);
   });
+  
+  // Update initial message counter 
+  chatView.updateCounters(messages);
 
   // Handle user's message to the AI
   chatForm.addEventListener("submit", handleUserMessage);
 }
 
 async function handleUserMessage(event) {
-  // Prevents default form submission
   event.preventDefault();
 
   // Exit if message is empty, otherwise disable input while loading
@@ -63,48 +52,36 @@ async function handleUserMessage(event) {
   messages.push(assistantMessage);
   chatView.addMessage(assistantMessage);
 
-  /** 
-   * Challenge:
-   * Your app should allow users to select the persona they want to chat with. 
-   * This requires you to dynamically assign a system prompt.
-   * 
-   * 1. Create system prompts for all 3 personas in the systemPrompts object.
-   * 
-   * 2. Get the user's current selected persona
-   * 
-   * 3. Assign the selected persona's prompt as the system prompt in streamText
-   * 
-   * 💡 Check the hints folder if you're stuck
-   * **/
-  const systemPrompts = {
-    assistant: `You are a helpful assistant that asks great follow up questions instead of assuming the user's full intent. Skip the introduction and get straight to the point.`,
-    eli5: `You are a helpful teacher who explains concepts in a simple and short manner, as if explaining to a curious and intelligent 5 year old.`,
-    coach: `You are a tough love coach that encourages people to be the best version of themselves. You give people realistic action plans and don't accept excuses.`
-  };
+  // contextMessages currently sends entire history
+  const contextMessages = messages  
+  // Update counter to show the difference between total and context messages
+  chatView.updateCounters(messages, contextMessages);
 
-  const selectedPersona = personaSelector.value
-  const personaSystemPrompt = systemPrompts[selectedPersona]
-
+  // Try to send user message and stream LLM response, catch any errors
   try {
-    // Send conversation history and stream the response
-    const response = await streamText({ 
+    const response = await streamText({
       model: openRouterModel,
-      system: personaSystemPrompt,
-      messages 
+      messages
     });
 
-    // Update the assistant message as chunks arrive
-    for await (const textChunk of response.textStream) {
-      assistantMessage.content += textChunk;
-      chatView.updateLatestMessage(assistantMessage.content);
+    // Update the assistant message as text arrives and check for error events
+    // Unlike textStream, fullStream includes error events
+    for await (const event of response.fullStream) {
+      if (event.type === 'error') {
+        throw event.error;
+      } else if (event.type === 'text-delta') {
+        assistantMessage.content += event.text;
+        chatView.updateLatestMessage(assistantMessage.content);
+      }
     }
 
   } catch (err) {
-    assistantMessage.content = `**Error:** ${err.message}`;
+    assistantMessage.content = formatErrorMessage(err);
     chatView.updateLatestMessage(assistantMessage.content);
   }
   
   disableInputWhileLoading(false);
+  chatView.updateCounters(messages, contextMessages);
 }
 
 function disableInputWhileLoading(shouldDisable) {
