@@ -53,7 +53,7 @@ async function handleUserMessage(event) {
   chatView.addMessage(assistantMessage);
 
   // contextMessages currently sends entire history
-  const contextMessages = messages  
+  const contextMessages = messages.slice(-10)
   // Update counter to show the difference between total and context messages
   chatView.updateCounters(messages, contextMessages);
 
