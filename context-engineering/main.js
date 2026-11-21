@@ -48,9 +48,16 @@ async function handleUserMessage(event) {
   chatView.addMessage(assistantMessage);
 
   try {
-    // Send conversation history and stream the response
-    const response = await streamText({ 
+    // Try it yourself:
+    // 
+    // Add a system prompt to the streamText call below.
+    // 
+    // The prompt should instruct the AI to ask for 
+    // clarification instead of assuming what the user wants.
+    const response = await streamText({
       model: openRouterModel,
+      system: `No intros and conclusions. Instead of assuming, 
+      ask for clarification.`,
       messages 
     });
 
