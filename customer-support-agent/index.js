@@ -12,20 +12,18 @@ async function main(query){
 
   //create a prompt including context docs to send to the model
 
-  // const contextString = combineDocuments(retrievedDocs);
+  const contextString = combineDocuments(retrievedDocs);
 
   //create a prompt including context docs to send to the model
-  // const prompt = getRagPrompt(contextString, query)
+  const prompt = getRagPrompt(contextString, query)
 
-  // console.log(`Prompt: ${prompt}`)
+  // send prompt to model to generate response
+  const response = await openai.responses.create({
+    model: ANSWERING_MODEL,
+    input: prompt
+  });
 
-  // //send prompt to model to generate response
-  // const response = await openai.responses.create({
-  //   model: ANSWERING_MODEL,
-  //   input: query
-  // });
-
-  // console.log(response.output_text);
+  console.log(response.output_text);
 
 
 }
