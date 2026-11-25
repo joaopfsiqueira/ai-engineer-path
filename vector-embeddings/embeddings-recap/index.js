@@ -1,7 +1,7 @@
 import {openai} from './config.js';
 
 const content = [
-  "This text will be converted to an embedding.",
+  "Hello, world.",
 ]; 
 
 async function main() {
@@ -9,6 +9,6 @@ async function main() {
     model: "text-embedding-3-small",
     input: content,
   });
-  console.log(embedding.data);
+  console.log(embedding.data[0].embedding);
 }
 main();
