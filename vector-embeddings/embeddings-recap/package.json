@@ -1,0 +1,10 @@
+{
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.10",
+    "openai": "^5.16.0"
+  }
+}
